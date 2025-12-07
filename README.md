@@ -12,6 +12,7 @@ Talkback-AI is a Node.js-based server application that provides a WebSocket API 
 ## Project Structure
 ```
 Talkback-AI/
+├── client.html                  # Simple browser client to test WebSocket
 ├── src/
 │   ├── server.ts                # Main server entry point
 │   ├── controllers/
@@ -24,9 +25,10 @@ Talkback-AI/
 │   └── types/
 │       └── types.ts             # Shared TypeScript types
 ├── tests/
+│   ├── e2e/
+│   │   └── e2e.test.ts          # End-to-end test
 │   ├── integration/
-│   │   ├── open.integration.test.ts
-│   │   └── wse2e.integration.test.ts
+│   │   └── openAI.integration.test.ts
 │   └── unit/
 │       └── openAIService.test.ts
 ├── package.json
