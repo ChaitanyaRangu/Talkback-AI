@@ -70,7 +70,7 @@ npm test
 - Start the server (see above).
 - Open `client.html` in your browser by double-clicking it.
 - The page will connect to the WebSocket server.
-- Type a message and send; you will receive chat responses and TTS audio.
+- Type a message and send; you will receive TTS audio.
 
 ## Environment Variables
 - `PORT`: Port number for the server to listen on (default: 8000)
