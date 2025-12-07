@@ -1,15 +1,13 @@
 import OpenAI from "openai";
 import {ChatCompletionRequest, ChatCompletionResponse, WebSocketMessage, TTSRequest, ValidationError, APIError, RateLimitError} from "../types/types"
 import { log } from "./Logger";
-import { WebSocket } from 'ws';
 import { ConnectionManager } from "../controllers/ConnectionManager";
 import { SessionManager } from "../controllers/SessionManager";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 interface MainService {
+
+  ai: any;
   connectionManager: ConnectionManager;
   sessionManager: SessionManager;
   processChain(chatRequest: ChatCompletionRequest, ttsOptions: TTSRequest, sessionId: string, timeoutMs?: number): void;  
@@ -18,13 +16,19 @@ interface MainService {
 export class OpenAIService implements MainService{
 
   static readonly DEFAULT_MAX_TTS_CHARS = 4096;
+
+  ai: OpenAI;
   connectionManager: ConnectionManager;
   sessionManager: SessionManager;
+
 
   constructor(connectionManager: ConnectionManager, sessionManager: SessionManager) {
 
     this.connectionManager = connectionManager;
     this.sessionManager = sessionManager;
+    this.ai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
   }
 
   async processChain(chatRequest: ChatCompletionRequest, ttsOptions: TTSRequest, sessionId: string, timeoutMs?: number): Promise<void> {
@@ -129,7 +133,7 @@ export class OpenAIService implements MainService{
     try {
       log.info("Requesting chat completion from OpenAI...");
       
-      const response = await openai.chat.completions.create({
+      const response = await this.ai.chat.completions.create({
         ...chatRequest,
         model: chatRequest.model || "gpt-3.5-turbo",
         stream: false,
@@ -168,7 +172,7 @@ export class OpenAIService implements MainService{
         try {
           log.info(`Generating TTS chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
           
-          const response = await openai.audio.speech.create({
+          const response = await this.ai.audio.speech.create({
             model: options.model || "tts-1",
             voice: options.voice || "alloy",
             input: chunks[i],
