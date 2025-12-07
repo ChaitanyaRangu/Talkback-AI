@@ -31,6 +31,37 @@ export class OpenAIService implements MainService{
     });
   }
 
+  private async retryWithBackoff<T>(
+      operation: () => Promise<T>,
+      maxRetries: number = 3,
+      baseDelay: number = 1000
+  ): Promise<T> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+
+        if (error instanceof OpenAI.APIError) {
+          // Don't retry on client errors (4xx)
+          if (error.status && error.status >= 400 && error.status < 500) {
+            throw error;
+          }
+        }
+
+        if (attempt < maxRetries - 1) {
+          const delay = baseDelay * Math.pow(2, attempt);
+          log.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
   async processChain(chatRequest: ChatCompletionRequest, ttsOptions: TTSRequest, sessionId: string, timeoutMs?: number): Promise<void> {
     try {
       if (!this.sessionManager.isActive(sessionId)) {
@@ -39,7 +70,7 @@ export class OpenAIService implements MainService{
 
       log.info(`Processing chain for session ${sessionId}`);
       
-      const responseText: string = await this.getChatCompletion(chatRequest);
+      const responseText: string = await this.retryWithBackoff(() => this.getChatCompletion(chatRequest), 1, 1000);
       
       if (!responseText.trim()) {
         throw new APIError(500, "Empty response from chat completion");
@@ -48,7 +79,7 @@ export class OpenAIService implements MainService{
       log.info(`Chat completion received (${responseText.length} chars): ${responseText.substring(0, 100)}...`);
       
       ttsOptions.input = responseText;
-      await this.getTTSAudioStream(responseText, ttsOptions, sessionId);
+      await this.retryWithBackoff(() => this.getTTSAudioStream(responseText, ttsOptions, sessionId), 1, 1000);
       
       log.info(`Chain processing completed for session ${sessionId}`);
     } catch (error) {
