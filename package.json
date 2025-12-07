@@ -6,7 +6,8 @@
     "dev": "ts-node-dev --respawn src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test:unit": "node --test --require ts-node/register tests/unit/openAIService.test.ts"
+    "test:unit": "node --test --require ts-node/register tests/unit/openAIService.test.ts",
+    "test:integration": "node --test --require ts-node/register tests/integration/open.integration.test.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
