@@ -50,6 +50,11 @@ Talkback-AI/
    ```sh
    npm install
    ```
+3. Create a `.env` file in the project root with:
+   ```
+   OPENAI_API_KEY=your_key_here
+   PORT=8000
+   ```
 
 ### Running the Server
 ```sh
@@ -61,11 +66,15 @@ npm start
 npm test
 ```
 
-## Environment Variables
-- `OPENAI_API_KEY`: Your OpenAI API key (required for chat and TTS features)
-
 ## Usage
-Connect to the WebSocket server and send chat messages. The server will respond with chat completions and TTS audio data.
+- Start the server (see above).
+- Open `client.html` in your browser by double-clicking it.
+- The page will connect to the WebSocket server.
+- Type a message and send; you will receive chat responses and TTS audio.
+
+## Environment Variables
+- `PORT`: Port number for the server to listen on (default: 8000)
+- `OPENAI_API_KEY`: Your OpenAI API key (required for chat and TTS features)
 
 ## Documentation
 See below for documentation of each class in the codebase.
@@ -138,5 +147,3 @@ See below for documentation of each class in the codebase.
 ---
 
 For further details, refer to the source code and inline comments.
-
-

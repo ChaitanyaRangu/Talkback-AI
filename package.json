@@ -16,9 +16,12 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "@types/uuid": "^11.0.0",
     "@types/ws": "^8.5.12",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.6.2"
   }
