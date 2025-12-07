@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TalkBack AI</title>
+</head>
+<body>
+  <h1>TalkBack AI</h1>
+  <div id="status">Connecting...</div>
+  
+  <textarea id="input" rows="5" cols="50">Tell me a funny joke about programming.</textarea>
+  <br><br>
+  
+  <label>Voice:</label>
+  <select id="voice">
+    <option value="alloy">Alloy</option>
+    <option value="echo">Echo</option>
+    <option value="fable">Fable</option>
+    <option value="onyx">Onyx</option>
+    <option value="nova" selected>Nova</option>
+    <option value="shimmer">Shimmer</option>
+  </select>
+  <br><br>
+  
+  <button onclick="send()">Send & Listen</button>
+  <button onclick="cancel()">Cancel</button>
+  <br><br>
+  
+  <audio id="audioPlayer" controls></audio>
+  <br><br>
+  
+  <div id="log" style="border: 1px solid black; height: 300px; overflow-y: auto; padding: 10px;"></div>
+
+  <script>
+    const ws = new WebSocket("ws://localhost:8000");
+    const log = document.getElementById("log");
+    const statusDiv = document.getElementById("status");
+    const audioPlayer = document.getElementById("audioPlayer");
+    
+    let audioQueue = [];
+    let isPlaying = false;
+
+    ws.onopen = () => {
+      statusDiv.textContent = "Connected";
+      addLog("Connected to server");
+    };
+
+    ws.onclose = () => {
+      statusDiv.textContent = "Disconnected";
+      addLog("Disconnected from server");
+    };
+
+    ws.onerror = (error) => {
+      addLog("Connection error: " + error);
+    };
+
+    ws.onmessage = (event) => {
+      if (typeof event.data === "string") {
+        try {
+          const msg = JSON.parse(event.data);
+          addLog("Received: " + JSON.stringify(msg));
+          
+          // Handle TTS audio response
+          if (msg.type === "tts_audio" && msg.data && msg.data.audio) {
+            queueAudio(msg.data.audio);
+          }
+          
+          if (msg.error) {
+            addLog("Error: " + msg.error);
+          }
+        } catch (e) {
+          addLog("Parse error: " + e.message);
+        }
+      }
+      log.scrollTop = log.scrollHeight;
+    };
+
+    function queueAudio(base64Audio) {
+      try {
+        // Convert base64 to blob
+        const binaryString = atob(base64Audio);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        const blob = new Blob([bytes], { type: "audio/mpeg" });
+        const url = URL.createObjectURL(blob);
+        
+        // Add to queue
+        audioQueue.push(url);
+        addLog("Audio chunk queued (" + (binaryString.length / 1024).toFixed(1) + " KB)");
+        
+        // Start playing if not already playing
+        if (!isPlaying) {
+          playNext();
+        }
+      } catch (error) {
+        addLog("Audio queue error: " + error.message);
+      }
+    }
+
+    function playNext() {
+      if (audioQueue.length === 0) {
+        isPlaying = false;
+        addLog("All audio played");
+        return;
+      }
+      
+      isPlaying = true;
+      const audioUrl = audioQueue.shift();
+      audioPlayer.src = audioUrl;
+      addLog("Playing audio chunk...");
+      audioPlayer.play();
+    }
+
+    audioPlayer.onended = () => {
+      playNext();
+    };
+
+    function send() {
+      const text = document.getElementById("input").value.trim();
+      const voice = document.getElementById("voice").value;
+      
+      if (!text) {
+        alert("Type something!");
+        return;
+      }
+      
+      if (ws.readyState !== WebSocket.OPEN) {
+        alert("Not connected!");
+        return;
+      }
+
+      audioQueue = [];
+      isPlaying = false;
+      audioPlayer.pause();
+      addLog("--- New request ---");
+      ws.send(JSON.stringify({ text, voice, reqType: "message" }));
+      addLog("Sent: " + text);
+    }
+
+    function cancel() {
+      if (ws.readyState !== WebSocket.OPEN) {
+        alert("Not connected!");
+        return;
+      }
+      audioQueue = [];
+      isPlaying = false;
+      audioPlayer.pause();
+      ws.send(JSON.stringify({ reqType: "cancel" }));
+      addLog("Cancel request sent");
+    }
+
+    function addLog(message) {
+      const entry = document.createElement("div");
+      entry.textContent = "[" + new Date().toLocaleTimeString() + "] " + message;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+  </script>
+</body>
+</html>
