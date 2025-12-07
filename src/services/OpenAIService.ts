@@ -1,3 +1,11 @@
+// OpenAIService.ts
+// Handles communication with OpenAI APIs for chat and TTS.
+//
+// - Uses OpenAI SDK for API calls.
+// - Provides processChain() to process chat and TTS requests for a session.
+// - Handles retries and error management.
+// - Relies on ConnectionManager and SessionManager for session and connection state.
+
 import OpenAI from "openai";
 import {ChatCompletionRequest, ChatCompletionResponse, WebSocketMessage, TTSRequest, ValidationError, APIError, RateLimitError} from "../types/types"
 import { log } from "./Logger";

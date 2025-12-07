@@ -4,7 +4,7 @@ import { SocketManager } from "./controllers/SocketManager";
 import { log } from "./services/Logger";
 import { createServer as createHttpServer, Server as HttpServer} from "http";
 
-class Server {
+export class Server {
 
   private server: HttpServer;
 

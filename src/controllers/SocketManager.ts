@@ -1,3 +1,12 @@
+// SocketManager.ts
+// Manages the WebSocket server, handling new connections and routing messages.
+//
+// - Sets up a WebSocket server on the provided HTTP server.
+// - Registers new connections and assigns a session ID.
+// - Listens for messages and routes them to the appropriate handler (chat, TTS, or cancel).
+// - Uses ConnectionManager to track sockets and SessionManager for session state.
+// - Integrates with OpenAIService for chat and TTS processing.
+
 import { WebSocketServer } from "ws";
 import {Server as HttpServer} from "http";
 import { randomUUID } from 'crypto';
