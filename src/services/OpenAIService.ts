@@ -118,7 +118,7 @@ export class OpenAIService implements MainService{
     }
 
     try {
-      return this.connectionManager.send(sessionId, JSON.stringify(message));
+      return this.connectionManager.send(sessionId, message);
     } catch (error) {
       log.error(`Failed to send message to session ${sessionId}:`, error);
       return false;
