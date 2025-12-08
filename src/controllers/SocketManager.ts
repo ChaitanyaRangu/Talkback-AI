@@ -85,7 +85,7 @@ export class SocketManager{
           const userText = text.trim();
 
           const chatOptions: ChatCompletionRequest = {messages: [{role: 'user', content: userText}]}
-          const ttsOptions: TTSRequest = {input: ""}
+          const ttsOptions: TTSRequest = {input: ""} // leaving input empty
 
           ws.send(JSON.stringify({ status: "msg received" }));
           ws.send(JSON.stringify({ status: "thinking" }));
