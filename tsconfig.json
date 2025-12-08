@@ -7,7 +7,14 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "sourceMap": true
+    "sourceMap": true,
+
+    /* Needed for Jest + ts-jest */
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "types": ["jest", "node"]
   },
-  "include": ["src"]
+
+  /* IMPORTANT: include test files */
+  "include": ["src", "tests", "**/*.test.ts"]
 }

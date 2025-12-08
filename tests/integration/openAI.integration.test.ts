@@ -1,8 +1,6 @@
-import { strict as assert } from "node:assert";
-import { describe, it, beforeEach, afterEach } from "node:test";
-
-// Set mock API key before imports
-process.env.OPENAI_API_KEY = "test-api-key-mock";
+/**
+ * OpenAIService Integration Tests (Jest Version)
+ */
 
 import { OpenAIService } from "../../src/services/OpenAIService";
 import { ConnectionManager } from "../../src/controllers/ConnectionManager";
@@ -15,6 +13,7 @@ describe("OpenAIService Integration Tests", () => {
     const testSessionId = "test-session-123";
 
     beforeEach(() => {
+        process.env.OPENAI_API_KEY = "test-api-key-mock";
         connectionManager = new ConnectionManager();
         sessionManager = new SessionManager();
         service = new OpenAIService(connectionManager, sessionManager);
@@ -24,44 +23,48 @@ describe("OpenAIService Integration Tests", () => {
         sessionManager.removeSession(testSessionId);
     });
 
-    it("should not process chain for inactive session", async () => {
+    test("should not process chain for inactive session", async () => {
         const chatRequest = {
             messages: [{ role: "user" as const, content: "Hello" }]
         };
+
         const ttsOptions = {
             model: "tts-1" as const,
             voice: "alloy" as const,
             input: ""
         };
 
-        let catchedError;
-        try{
-            // Should not throw, but handle error internally
-            await service.processChain(chatRequest, ttsOptions, testSessionId)
-            // Error should be logged and sent to WebSocket (if connected)
-        }
-        catch(e) {
-            catchedError = e;
+        let thrown = undefined;
+
+        try {
+            await service.processChain(chatRequest, ttsOptions, testSessionId);
+        } catch (e) {
+            thrown = e;
         }
 
-        assert.deepStrictEqual(catchedError, undefined);
+        expect(thrown).toBeUndefined();
     });
 
-    it("should handle invalid chat request gracefully", async () => {
+    test("should handle invalid chat request gracefully", async () => {
         sessionManager.addSession(testSessionId);
 
         const invalidRequest = {
-            messages: [] // Empty messages array
+            messages: []
         };
+
         const ttsOptions = {
             model: "tts-1" as const,
             voice: "alloy" as const,
             input: ""
         };
 
-        // Should not throw, but handle error internally
-        await service.processChain(invalidRequest, ttsOptions, testSessionId);
-        // Error should be logged and sent to WebSocket (if connected)
-    });
+        let thrown = undefined;
+        try {
+            await service.processChain(invalidRequest, ttsOptions, testSessionId);
+        } catch (e) {
+            thrown = e;
+        }
 
+        expect(thrown).toBeUndefined();
+    });
 });

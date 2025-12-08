@@ -6,9 +6,11 @@
     "dev": "ts-node-dev --respawn src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "test:unit": "node --test --require ts-node/register tests/unit/openAIService.test.ts",
-    "test:integration": "node --test --require ts-node/register tests/integration/openAI.integration.test.ts",
-    "test:e2e": "node --test --require ts-node/register tests/integration/e2e.test.ts"
+
+    "test": "jest",
+    "test:unit": "jest --runTestsByPath tests/unit/openAIService.test.ts",
+    "test:integration": "jest --runTestsByPath tests/integration/openAI.integration.test.ts",
+    "test:e2e": "jest --runTestsByPath tests/integration/e2e.test.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
@@ -24,6 +26,6 @@
     "jest": "^30.2.0",
     "ts-jest": "^29.4.6",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.6.2"
+    "typescript": "^5.9.3"
   }
 }

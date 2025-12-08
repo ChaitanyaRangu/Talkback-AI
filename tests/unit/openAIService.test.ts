@@ -1,8 +1,6 @@
 import { OpenAIService } from "../../src/services/OpenAIService";
 import { strict as assert } from "node:assert";
-import { describe, it, beforeEach, mock } from "node:test";
 
-import { APIError } from "../../src/types/types";
 describe("Smart Split", () => {
     let openApiService: OpenAIService;
 
@@ -11,34 +9,35 @@ describe("Smart Split", () => {
         openApiService = new OpenAIService(null as any, null as any);
     });
 
-    it("splits long text into safe TTS chunks", () => {
+    test("splits long text into safe TTS chunks", () => {
         const long = "Some Text! ".repeat(1000);
         const chunks = openApiService.smartSplit(long);
-        assert(chunks.every(c => c.length <= 4096));
-        assert(chunks.length > 1);
+        expect(chunks.every(c => c.length <= 4096)).toBe(true);
+        expect(chunks.length).toBeGreaterThan(1);
     });
 
-    it("returns single chunk when short", () => {
-        assert.deepStrictEqual(openApiService.smartSplit("Hi"), ["Hi"]);
+    test("returns single chunk when short", () => {
+        expect(openApiService.smartSplit("Hi")).toEqual(["Hi"]);
     });
 
-    it("handles empty text", () => {
-        assert.deepStrictEqual(openApiService.smartSplit(""), [""]);
+    test("handles empty text", () => {
+        expect(openApiService.smartSplit("")).toEqual([""]);
     });
 
-    it("splits at sentence boundaries", () => {
+    test("splits at sentence boundaries", () => {
         const text = "First sentence. ".repeat(500) + "Last sentence.";
         const chunks = openApiService.smartSplit(text);
 
-        assert(chunks.every(c => c.length <= 4096));
-        assert(chunks.every(c => c.trim().endsWith('.')));
+        expect(chunks.every(c => c.length <= 4096)).toBe(true);
+        expect(chunks.every(c => c.trim().endsWith("."))).toBe(true);
     });
 
-    it("handles text exactly at limit", () => {
+    test("handles text exactly at limit", () => {
         const text = "A".repeat(4096);
         const chunks = openApiService.smartSplit(text);
-        assert.strictEqual(chunks.length, 1);
-        assert.strictEqual(chunks[0].length, 4096);
+
+        expect(chunks.length).toBe(1);
+        expect(chunks[0].length).toBe(4096);
     });
 });
 
@@ -50,37 +49,31 @@ describe("Retry Logic", () => {
         openApiService = new OpenAIService(null as any, null as any);
     });
 
-    it("should retry on transient failures", async () => {
-        const service = new OpenAIService(null as any, null as any);
+    test("should retry on transient failures", async () => {
         let attemptCount = 0;
 
-        const operation = mock.fn(async () => {
+        const operation = jest.fn(async () => {
             attemptCount++;
-            if (attemptCount < 3) {
-                throw new Error("Transient error");
-            }
+            if (attemptCount < 3) throw new Error("Transient error");
             return "success";
         });
 
-        const result = await (service as any).retryWithBackoff(operation, 3, 10);
+        const result = await (openApiService as any).retryWithBackoff(operation, 3, 10);
 
-        assert.strictEqual(result, "success");
-        assert.strictEqual(attemptCount, 3);
-        assert.strictEqual(operation.mock.calls.length, 3);
+        expect(result).toBe("success");
+        expect(attemptCount).toBe(3);
+        expect(operation).toHaveBeenCalledTimes(3);
     });
 
-    it("should throw after max retries", async () => {
-        const service = new OpenAIService(null as any, null as any);
-
-        const operation = mock.fn(async () => {
+    test("should throw after max retries", async () => {
+        const operation = jest.fn(async () => {
             throw new Error("Persistent error");
         });
 
-        await assert.rejects(
-            async () => (service as any).retryWithBackoff(operation, 3, 10),
-            /Persistent error/
-        );
+        await expect(
+            (openApiService as any).retryWithBackoff(operation, 3, 10)
+        ).rejects.toThrow("Persistent error");
 
-        assert.strictEqual(operation.mock.calls.length, 3);
+        expect(operation).toHaveBeenCalledTimes(3);
     });
 });

@@ -3,7 +3,6 @@ import http from "http";
 import { SocketManager } from "../../src/controllers/SocketManager";
 import OpenAI from "openai";
 
-// Mock OpenAI SDK with chat completion and TTS responses
 jest.mock("openai", () => {
   return {
     __esModule: true,
@@ -25,6 +24,7 @@ jest.mock("openai", () => {
     })),
   };
 });
+
 
 describe("E2E – Chat + TTS pipeline (Jest)", () => {
   let httpServer: http.Server;
