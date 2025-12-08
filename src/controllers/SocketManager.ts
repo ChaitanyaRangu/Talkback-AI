@@ -1,12 +1,19 @@
-// SocketManager.ts
-// Manages the WebSocket server, handling new connections and routing messages.
-//
-// - Sets up a WebSocket server on the provided HTTP server.
-// - Registers new connections and assigns a session ID.
-// - Listens for messages and routes them to the appropriate handler (chat, TTS, or cancel).
-// - Uses ConnectionManager to track sockets and SessionManager for session state.
-// - Integrates with OpenAIService for chat and TTS processing.
-
+/**
+ * SocketManager
+ * -------------
+ * Handles WebSocket server operations:
+ *
+ * - Accepts incoming WebSocket connections
+ * - Assigns unique session IDs
+ * - Routes incoming messages to OpenAIService
+ * - Sends status + streaming responses back to the client
+ * - Cleans up sessions on disconnect
+ *
+ * Relies on:
+ * - ConnectionManager for tracking sockets
+ * - SessionManager for tracking active sessions
+ * - OpenAIService for chat + TTS pipeline
+ */
 import { WebSocketServer } from "ws";
 import {Server as HttpServer} from "http";
 import { randomUUID } from 'crypto';
@@ -19,9 +26,17 @@ import { SessionManager } from "./SessionManager";
 
 export class SocketManager{
 
+
+  /** Underlying WebSocket server instance */
   private webSocketServer: WebSocketServer;
-  private openAIService : OpenAIService;
+
+  /** Service for LLM + TTS processing */
+  private openAIService: OpenAIService;
+
+  /** Manages socket connections */
   private connectionManager: ConnectionManager;
+
+  /** Tracks active sessions */
   private sessionManager: SessionManager;
 
   constructor(server: HttpServer) {
@@ -32,6 +47,13 @@ export class SocketManager{
     this.setupWebSocket();
   }
 
+  /**
+   * Initializes WebSocket event listeners for:
+   * - connection
+   * - message
+   * - close
+   * - error
+   */
   private setupWebSocket() {
     this.webSocketServer.on("connection", (ws, req) => {
       const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
@@ -41,6 +63,9 @@ export class SocketManager{
       const sessionId = randomUUID();
       this.connectionManager.register(sessionId, ws);
 
+      /**
+       * Handles all incoming messages from clients.
+       */
       ws.on("message", async (data: WebSocketMessage) => {
         try {
           const {reqType, text} = JSON.parse(data.toString());
@@ -62,19 +87,17 @@ export class SocketManager{
           const chatOptions: ChatCompletionRequest = {messages: [{role: 'user', content: userText}]}
           const ttsOptions: TTSRequest = {input: ""}
 
-          this.openAIService.processChain(chatOptions, ttsOptions, sessionId, 0)
-
           ws.send(JSON.stringify({ status: "thinking" }));
 
-          ws.send(JSON.stringify({ status: "speaking"}));
-
-          
+          await this.openAIService.processChain(chatOptions, ttsOptions, sessionId, 0)
         } catch (err: any) {
           log.error("Message handling error:", err);
           ws.send(JSON.stringify({ error: "Internal error" }));
         }
       });
-
+      /**
+       * Cleanup when client disconnects.
+       */
       ws.on("close", () => {
         this.sessionManager.removeSession(sessionId);
         this.connectionManager.unregister(sessionId);
@@ -85,12 +108,17 @@ export class SocketManager{
     })
   }
 
+  /**
+   * Closes all WebSocket connections gracefully, sending a shutdown signal.
+   *
+   * @returns Promise resolving once all connections are closed
+   */
   async closeAllConnectionsGracefully(): Promise<void> {
     const closePromises: Promise<void>[] = [];
 
     this.connectionManager.getAllConenctions().forEach((ws, sessionId) => {
       try {
-        // Send shutdown message
+        // Send shutdown message to client
         ws.send(JSON.stringify({
           type: "server_shutdown",
           data: { message: "Server is shutting down" },
