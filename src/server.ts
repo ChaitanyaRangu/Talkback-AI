@@ -3,6 +3,7 @@ import "dotenv/config";
 import { SocketManager } from "./controllers/SocketManager";
 import { log } from "./services/Logger";
 import { createServer as createHttpServer, Server as HttpServer} from "http";
+import path from "path";
 
 export class Server {
 
@@ -26,9 +27,13 @@ export class Server {
       }
     });
 
+    // Only for development purposes: serve a simple client UI
+    const htmlPath = path.resolve("./client.html");
+
     this.server.listen(port, () => {
-      log.info(`WebSocket server running on ws://localhost:${port}/ws`);
       log.info(`Health check at http://localhost:${port}/health`);
+      log.info(`WebSocket server running on ws://localhost:${port}/ws`);
+      log.info(`Client UI available at: file://${htmlPath}`);
     });
 
     process.on("SIGINT", () => this.shutdown("SIGINT"));
