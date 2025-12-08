@@ -147,7 +147,7 @@ export class OpenAIService implements MainService{
         details: error instanceof APIError ? error.details : undefined
       },
       timestamp: Date.now()
-    });
+    } as WebSocketMessage);
   }
 
   private sendToWebSocket(
