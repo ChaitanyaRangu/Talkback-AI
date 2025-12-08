@@ -26,11 +26,11 @@ Talkback-AI/
 │       └── types.ts             # Shared TypeScript types
 ├── tests/
 │   ├── e2e/
-│   │   └── e2e.test.ts          # End-to-end test
+│   │   └── openai.e2e.test.ts          # End-to-end test
 │   ├── integration/
-│   │   └── openAI.integration.test.ts
+│   │   └── openai.int.test.ts
 │   └── unit/
-│       └── openAIService.test.ts
+│       └── openai.unit.test.ts
 ├── package.json
 ├── tsconfig.json
 └── README.md

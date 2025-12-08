@@ -8,9 +8,9 @@
     "start": "node dist/server.js",
 
     "test": "jest",
-    "test:unit": "jest --runTestsByPath tests/unit/openAIService.test.ts",
-    "test:integration": "jest --runTestsByPath tests/integration/openAI.integration.test.ts",
-    "test:e2e": "jest --runTestsByPath tests/integration/e2e.test.ts"
+    "test:unit": "jest --runTestsByPath tests/unit/openai.unit.test.ts",
+    "test:integration": "jest --runTestsByPath tests/integration/openai.int.test.ts",
+    "test:e2e": "jest --runTestsByPath tests/integration/openai.e2e.test.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
