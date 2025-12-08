@@ -3,7 +3,7 @@
 Talkback-AI is a Node.js-based server application that provides a WebSocket API for real-time chat and text-to-speech (TTS) services, integrating with OpenAI's APIs. It is designed for interactive conversational AI experiences, supporting both chat completion and TTS audio streaming.
 
 ## Features
-- WebSocket server for real-time chatCompletion in Speech Streaming mode
+- WebSocket server for real-time chatCompletion to Speech Streaming mode
 - Chat completion using OpenAI's GPT models
 - Text-to-speech (TTS) audio generation
 
@@ -50,10 +50,10 @@ Talkback-AI/
    ```sh
    npm install
    ```
-3. Edit the existing `.env` file in the project root with:
+3. Edit the existing `.env` file in the project root with your OpenAI API key:
    ```
-   OPENAI_API_KEY=your_key_here
    PORT=8000
+   OPENAI_API_KEY=your_key_here
    ```
 
 ### Running the Server
@@ -68,7 +68,7 @@ npm test
 
 ## Usage
 - Start the server (see above).
-- Open `client.html` in your browser by double-clicking it.
+- Open `client.html` in your browser by double-clicking it (if you change the port in the .env please change it in client.html as well).
 - The page will connect to the WebSocket server.
 - Type a message and send; you will receive TTS audio.
 
@@ -76,69 +76,36 @@ npm test
 - `PORT`: Port number for the server to listen on (default: 8000)
 - `OPENAI_API_KEY`: Your OpenAI API key (required for chat and TTS features)
 
-## Documentation
-See below for documentation of each class in the codebase.
-
 ---
+### Architecture Overview
 
-# Class Documentation
+Talkback-AI is structured into four main components that work together to provide real-time conversational AI over WebSockets.
 
-## src/server.ts
-### `Server`
-- **Description:** Main server class that initializes the HTTP server, WebSocket server, and sets up controllers for handling connections, sessions, and socket events.
-- **Constructor:**
-  - `constructor(server: http.Server)`
-- **Responsibilities:**
-  - Listens for incoming WebSocket connections
-  - Delegates connection handling to `ConnectionManager`
+1. **ConnectionManager**  
+   Responsible for accepting and managing WebSocket connections.  
+   It keeps track of active clients and creates a dedicated **SocketManager** when a new connection is established.
 
-## src/controllers/ConnectionManager.ts
-### `ConnectionManager`
-- **Description:** Manages all active WebSocket connections, tracks connected clients, and handles connection lifecycle events.
-- **Constructor:**
-  - `constructor(server: WebSocket.Server)`
-- **Responsibilities:**
-  - Accepts new WebSocket connections
-  - Removes closed/disconnected clients
-  - Broadcasts messages to clients as needed
+2. **SessionManager**  
+   Handles session creation and storage.  
+   Whenever a client connects, the ConnectionManager requests a new session from the SessionManager, which generates and maintains session data.
 
-## src/controllers/SessionManager.ts
-### `SessionManager`
-- **Description:** Handles user session management, including session creation, validation, and cleanup.
-- **Constructor:**
-  - `constructor()`
-- **Responsibilities:**
-  - Creates and tracks user sessions
-  - Associates sessions with WebSocket connections
-  - Cleans up expired sessions
+3. **SocketManager**  
+   Created per socket connection.  
+   It listens to incoming WebSocket events, parses messages from clients, and decides what actions to take (chat, TTS, etc.).  
+   When a client sends an AI-related request, the SocketManager forwards it to the **OpenAIService**.
 
-## src/controllers/SocketManager.ts
-### `SocketManager`
-- **Description:** Manages socket event routing, message parsing, and dispatching events to appropriate handlers.
-- **Constructor:**
-  - `constructor(connectionManager: ConnectionManager, sessionManager: SessionManager, openAIService: OpenAIService)`
-- **Responsibilities:**
-  - Listens for incoming messages on sockets
-  - Routes messages to chat or TTS handlers
-  - Sends responses back to clients
+4. **OpenAIService**  
+   Wraps all communication with OpenAI's API.  
+   It handles:
+  - Chat Completion (text responses)
+  - Text-to-Speech (TTS) audio generation
+  - Streaming Audio Chunks back to the SocketManager
 
-## src/services/Logger.ts
-### `Logger`
-- **Description:** Provides logging utilities for the application, supporting different log levels and output formats.
+### How They Work Together (Summary)
 
-## src/services/OpenAIService.ts
-### `OpenAIService`
-- **Description:** Integrates with OpenAI's API for chat completion and TTS features.
-- **Constructor:**
-  - `constructor(apiKey: string)`
-- **Responsibilities:**
-  - Sends chat completion requests to OpenAI
-  - Sends TTS requests to OpenAI
-  - Handles API errors and retries
-
-## src/types/types.ts
-- **Description:** Contains shared TypeScript types and interfaces used throughout the project.
-
----
-
-For further details, refer to the source code and inline comments.
+- A new client connects → **ConnectionManager** accepts it
+- A session is created → **SessionManager**
+- A socket handler is created → **SocketManager**
+- User sends a message → **SocketManager** interprets it
+- If AI processing is needed → **SocketManager** calls **OpenAIService**
+- OpenAI responds → **SocketManager** streams back Audio Chunks to the client
