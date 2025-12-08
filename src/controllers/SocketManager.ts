@@ -16,7 +16,6 @@ import { OpenAIService } from "../services/OpenAIService";
 import {ChatCompletionRequest, WebSocketMessage, TTSRequest} from "../types/types"
 import { ConnectionManager } from "./ConnectionManager";
 import { SessionManager } from "./SessionManager";
-import { Session } from "inspector";
 
 export class SocketManager{
 
