@@ -3,11 +3,9 @@
 Talkback-AI is a Node.js-based server application that provides a WebSocket API for real-time chat and text-to-speech (TTS) services, integrating with OpenAI's APIs. It is designed for interactive conversational AI experiences, supporting both chat completion and TTS audio streaming.
 
 ## Features
-- WebSocket server for real-time communication
+- WebSocket server for real-time chatCompletion in Speech Streaming mode
 - Chat completion using OpenAI's GPT models
 - Text-to-speech (TTS) audio generation
-- Modular architecture with controllers and services
-- Comprehensive integration and unit tests
 
 ## Project Structure
 ```
@@ -52,7 +50,7 @@ Talkback-AI/
    ```sh
    npm install
    ```
-3. Create a `.env` file in the project root with:
+3. Edit the existing `.env` file in the project root with:
    ```
    OPENAI_API_KEY=your_key_here
    PORT=8000
@@ -127,11 +125,6 @@ See below for documentation of each class in the codebase.
 ## src/services/Logger.ts
 ### `Logger`
 - **Description:** Provides logging utilities for the application, supporting different log levels and output formats.
-- **Constructor:**
-  - `constructor()`
-- **Responsibilities:**
-  - Logs informational, warning, and error messages
-  - Formats log output for readability
 
 ## src/services/OpenAIService.ts
 ### `OpenAIService`
