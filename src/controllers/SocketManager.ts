@@ -20,7 +20,7 @@ import { randomUUID } from 'crypto';
 
 import { log } from "../services/Logger";
 import { OpenAIService } from "../services/OpenAIService";
-import {ChatCompletionRequest, WebSocketMessage, TTSRequest} from "../types/types"
+import {ChatCompletionRequest, WebSocketMessage, TTSRequest, ClientMessage} from "../types/types"
 import { ConnectionManager } from "./ConnectionManager";
 import { SessionManager } from "./SessionManager";
 
@@ -66,10 +66,10 @@ export class SocketManager{
       /**
        * Handles all incoming messages from clients.
        */
-      ws.on("message", async (data: WebSocketMessage) => {
+      ws.on("message", async (data: ClientMessage) => {
         try {
-          const {reqType, text} = JSON.parse(data.toString());
-          
+          const {reqType, text, voice} = JSON.parse(data.toString());
+
           if(reqType == "cancel") {
             this.sessionManager.removeSession(sessionId);
             return ;
@@ -85,7 +85,7 @@ export class SocketManager{
           const userText = text.trim();
 
           const chatOptions: ChatCompletionRequest = {messages: [{role: 'user', content: userText}]}
-          const ttsOptions: TTSRequest = {input: ""} // leaving input empty
+          const ttsOptions: TTSRequest = {input: "", voice: voice} // leaving input empty
 
           ws.send(JSON.stringify({ status: "msg received" }));
           ws.send(JSON.stringify({ status: "thinking" }));

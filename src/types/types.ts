@@ -34,6 +34,12 @@ export interface WebSocketMessage {
   timestamp: number;
 }
 
+export interface ClientMessage {
+  reqType: 'chat' | 'cancel';
+  voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer';
+  data: string;
+}
+
 // Custom error classes for better error handling
 export class APIError extends Error {
   constructor(
