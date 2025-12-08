@@ -17,17 +17,9 @@ import {ChatCompletionRequest, ChatCompletionResponse, WebSocketMessage, TTSRequ
 import { log } from "./Logger";
 import { ConnectionManager } from "../controllers/ConnectionManager";
 import { SessionManager } from "../controllers/SessionManager";
+import {retryWithBackoff, smartSplit} from "../util/util";
 
-
-interface MainService {
-
-  ai: any;
-  connectionManager: ConnectionManager;
-  sessionManager: SessionManager;
-  processChain(chatRequest: ChatCompletionRequest, ttsOptions: TTSRequest, sessionId: string, timeoutMs?: number): void;  
-}
-
-export class OpenAIService implements MainService{
+export class OpenAIService {
 
   /** Maximum number of characters allowed per TTS chunk - OpenAI Documentation */
   static readonly DEFAULT_MAX_TTS_CHARS = 4096;
@@ -71,7 +63,7 @@ export class OpenAIService implements MainService{
 
       log.info(`Processing chain for session ${sessionId}`);
 
-      const responseText: string = await this.retryWithBackoff(() => this.getChatCompletion(chatRequest), 1, 1000);
+      const responseText: string = await retryWithBackoff(() => this.getChatCompletion(chatRequest), 1, 1000);
 
       if (!responseText.trim()) {
         throw new APIError(500, "Empty response from chat completion");
@@ -80,7 +72,7 @@ export class OpenAIService implements MainService{
       log.info(`Chat completion received (${responseText.length} chars): ${responseText.substring(0, 100)}...`);
 
       ttsOptions.input = responseText;
-      await this.retryWithBackoff(() => this.getTTSAudioStream(responseText, ttsOptions, sessionId), 1, 1000);
+      await retryWithBackoff(() => this.getTTSAudioStream(responseText, ttsOptions, sessionId), 1, 1000);
 
       log.info(`Chain processing completed for session ${sessionId}`);
     } catch (error) {
@@ -133,7 +125,7 @@ export class OpenAIService implements MainService{
     try {
       log.info(`Starting TTS for session ${sessionId}. Text length: ${text.length}`);
 
-      const chunks = this.smartSplit(text);
+      const chunks = smartSplit(text, OpenAIService.DEFAULT_MAX_TTS_CHARS);
       log.info(`Split text into ${chunks.length} chunks`);
 
       for (let i = 0; i < chunks.length; i++) {
@@ -188,72 +180,6 @@ export class OpenAIService implements MainService{
       throw error;
     }
   }
-
-  /**
-   * Utility: Retries a promise-returning operation using exponential backoff.
-   *
-   * @param operation - Function to retry
-   * @param maxRetries - Total retry attempts
-   * @param baseDelay - Delay in ms before first retry
-   * @returns The resolved value of the operation
-   */
-  private async retryWithBackoff<T>(
-      operation: () => Promise<T>,
-      maxRetries: number = 3,
-      baseDelay: number = 1000
-  ): Promise<T> {
-    let lastError: Error | undefined;
-
-    //TODO: Implement a exponential backoff strategy
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        return await operation();
-      } catch (error) {
-        lastError = error as Error;
-
-        if (error instanceof OpenAI.APIError) {
-          // Don't retry on client errors (4xx)
-          if (error.status && error.status >= 400 && error.status < 500) {
-            throw error;
-          }
-        }
-
-        if (attempt < maxRetries - 1) {
-          const delay = baseDelay * Math.pow(2, attempt);
-          log.warn(`Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-
-    throw lastError;
-  }
-
-  /**
-   * Splits text into chunks of sentences suitable for TTS requests.
-   */
-  smartSplit(text: string) {
-    if(text.length < OpenAIService.DEFAULT_MAX_TTS_CHARS) return [text];
-
-    const chunks: string[] = [];
-    let currentChunk = "";
-    const sentences = text.match(/[^.!?]+[.!?]+["']?\s*|[^.!?]+$/g) || [text]; // Split on sentences
-
-    for (const sentence of sentences) {
-      if (currentChunk.length + sentence.length > OpenAIService.DEFAULT_MAX_TTS_CHARS) {
-        if (currentChunk) {
-          chunks.push(currentChunk.trim());
-        } 
-        currentChunk = sentence;
-      } else {
-        currentChunk += sentence;
-      }
-    }
-    if (currentChunk) chunks.push(currentChunk.trim());
-
-    return chunks;
-  }
-
 
   /**
    * Handles all errors and forwards them to WebSocket clients.

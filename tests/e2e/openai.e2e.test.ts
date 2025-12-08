@@ -70,8 +70,8 @@ describe("E2E – Chat + TTS pipeline (Jest)", () => {
 
               expect(received).toEqual(
                 expect.arrayContaining([
+                  { status: "msg received" },
                   { status: "thinking" },
-                  { status: "speaking" },
                 ])
               );
 

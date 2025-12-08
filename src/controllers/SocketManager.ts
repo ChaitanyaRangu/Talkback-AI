@@ -87,6 +87,7 @@ export class SocketManager{
           const chatOptions: ChatCompletionRequest = {messages: [{role: 'user', content: userText}]}
           const ttsOptions: TTSRequest = {input: ""}
 
+          ws.send(JSON.stringify({ status: "msg received" }));
           ws.send(JSON.stringify({ status: "thinking" }));
 
           await this.openAIService.processChain(chatOptions, ttsOptions, sessionId, 0)
