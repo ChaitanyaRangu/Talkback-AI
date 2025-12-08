@@ -12,6 +12,10 @@ export class ConnectionManager {
     this.connections.delete(sessionId);
   }
 
+  getAllConenctions(): Map<string, WebSocket> {
+    return this.connections;
+  }
+
   getConnection(sessionId: string): WebSocket | null {
     return this.connections.get(sessionId) || null;
   }

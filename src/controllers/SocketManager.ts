@@ -24,7 +24,6 @@ export class SocketManager{
   private connectionManager: ConnectionManager;
   private sessionManager: SessionManager;
 
-
   constructor(server: HttpServer) {
     this.webSocketServer = new WebSocketServer({server: server});
     this.connectionManager = new ConnectionManager();
@@ -38,8 +37,7 @@ export class SocketManager{
       const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
       log.info("New connection from", ip);
-      
-      
+
       const sessionId = randomUUID();
       this.connectionManager.register(sessionId, ws);
 
@@ -86,4 +84,35 @@ export class SocketManager{
       
     })
   }
+
+  async closeAllConnectionsGracefully(): Promise<void> {
+    const closePromises: Promise<void>[] = [];
+
+    this.connectionManager.getAllConenctions().forEach((ws, sessionId) => {
+      try {
+        // Send shutdown message
+        ws.send(JSON.stringify({
+          type: "server_shutdown",
+          data: { message: "Server is shutting down" },
+        }));
+
+        // Wrap the 'close' event in a promise to wait for it
+        const closePromise = new Promise<void>((resolve) => {
+          ws.once("close", () => resolve());
+        });
+
+        // Close the connection with 1001 code (Going Away)
+        ws.close(1001, "Server shutdown");
+
+        closePromises.push(closePromise);
+      } catch (err) {
+        console.error(`Error closing connection ${sessionId}:`, err);
+      }
+    });
+
+    // Wait for all connections to close
+    await Promise.all(closePromises);
+    console.log("All WebSocket connections closed gracefully.");
+  }
+
 }
