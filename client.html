@@ -9,6 +9,17 @@
   
   <textarea id="input" rows="5" cols="50">Tell me a funny joke about programming.</textarea>
   <br><br>
+
+  <label>Voice:</label>
+  <select id="voice">
+    <option value="alloy">Alloy</option>
+    <option value="echo">Echo</option>
+    <option value="fable">Fable</option>
+    <option value="onyx">Onyx</option>
+    <option value="nova" selected>Nova</option>
+    <option value="shimmer">Shimmer</option>
+  </select>
+  <br><br>
   
   <button onclick="send()">Send & Listen</button>
   <button onclick="cancel()">Cancel</button>
@@ -124,7 +135,7 @@
       isPlaying = false;
       audioPlayer.pause();
       addLog("--- New request ---");
-      ws.send(JSON.stringify({ text, voice, reqType: "message" }));
+      ws.send(JSON.stringify({ reqType: "message", text: text, voice: voice }));
       addLog("Sent: " + text);
     }
 
