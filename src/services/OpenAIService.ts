@@ -128,49 +128,62 @@ export class OpenAIService {
       const chunks = smartSplit(text, OpenAIService.DEFAULT_MAX_TTS_CHARS);
       log.info(`Split text into ${chunks.length} chunks`);
 
-      for (let i = 0; i < chunks.length; i++) {
-        if (!this.sessionManager.isActive(sessionId)) {
-          log.warn(`Session ${sessionId} became inactive during TTS processing. Stopping.`);
-          break;
-        }
+      const resolvedChunks: Map<number, Buffer> = new Map();
+      let nextToSend = 0; // The next chunk index that should be sent
 
-        try {
-          log.info(`Generating TTS chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
+      // Helper to send chunks in order if they are ready
+      const flushChunks = () => {
+        while (resolvedChunks.has(nextToSend)) {
+          const buffer = resolvedChunks.get(nextToSend)!;
+          resolvedChunks.delete(nextToSend);
 
-          const response = await this.ai.audio.speech.create({
-            model: options.model || "tts-1",
-            voice: options.voice || "alloy",
-            input: chunks[i],
-            response_format: "mp3",
-          });
-
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-
-          log.info(`TTS chunk ${i + 1} generated: ${(buffer.length / 1024).toFixed(2)} KB`);
+          if (!this.sessionManager.isActive(sessionId)) {
+            log.warn(`Session ${sessionId} became inactive. Stopping TTS streaming.`);
+            break;
+          }
 
           const sent = this.sendToWebSocket(sessionId, {
             type: 'tts_audio',
             data: {
               audio: buffer.toString("base64"),
-              chunkIndex: i,
+              chunkIndex: nextToSend,
               totalChunks: chunks.length,
-              isLast: i === chunks.length - 1
+              isLast: nextToSend === chunks.length - 1,
             },
             timestamp: Date.now()
           });
 
           if (!sent) {
-            log.error(`Failed to send TTS chunk ${i + 1} to session ${sessionId}`);
+            log.error(`Failed to send TTS chunk ${nextToSend + 1} to session ${sessionId}`);
             break;
           }
 
+          log.info(`TTS chunk ${nextToSend + 1} sent successfully`);
+          nextToSend++;
+        }
+      };
+
+      // Start all TTS requests in parallel
+      const ttsPromises = chunks.map(async (chunk, index) => {
+        try {
+          log.info(`Generating TTS Audio of chunk-${index}`);
+          const response = await this.ai.audio.speech.create({
+            model: options.model || "tts-1",
+            voice: options.voice || "alloy",
+            input: chunk,
+            response_format: "mp3",
+          });
+
+          const buffer = Buffer.from(await response.arrayBuffer());
+          resolvedChunks.set(index, buffer);
+          flushChunks(); // Try to send any ready chunks in order
         } catch (chunkError) {
-          log.error(`Error processing TTS chunk ${i + 1}:`, chunkError);
+          log.error(`Error generating TTS for chunk ${index + 1}:`, chunkError);
           throw chunkError;
         }
-      }
+      });
 
+      await Promise.all(ttsPromises); // Wait for all to finish
       log.info(`TTS audio stream completed for session ${sessionId}`);
     } catch (error) {
       if (error instanceof OpenAI.APIError) {
